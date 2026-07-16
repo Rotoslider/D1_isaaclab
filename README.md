@@ -5,11 +5,13 @@ so it can train in the newer physics engine. Cloned from robot_lab's **Unitree G
 (identical joint naming: `FL/FR/RL/RR_{hip,thigh,calf}_joint`, base link `base`, foot `.*_foot`)
 with our D1's URDF + **48:1 actuator params**.
 
-## Status (2026-07-16)
-Config **complete and correct**. Currently blocked on a broken `robotlab` **Isaac Sim 4.5 env**
-(the URDF-importer extension doesn't load) — the *stock* Go2 task fails identically, which confirms
-the problem is the environment, not this config. Fix = clean reinstall of the Isaac Sim 4.5 /
-Isaac Lab 2.3.2 stack, then this trains as-is.
+## Status (2026-07-16) — ✅ WORKING
+Trains end-to-end in Isaac Lab. The D1 spawns from URDF, the velocity task builds, and rsl_rl PPO
+runs (verified: 5-iter test-train, all reward terms active).
+
+**Environment:** the `robotlab` env must be **Python 3.11 + Isaac Sim 5.1.0 + torch 2.7.0+cu128**
++ Isaac Lab v2.3.2 + robot_lab v2.3.2. (Isaac Sim **4.5.0 does NOT work** — its URDF-importer
+extension won't load; 5.1 downloads it on-demand. This cost a while to discover.)
 
 ## Files → deploy paths (into robot_lab v2.3.2, `source/robot_lab/robot_lab/`)
 | this repo | deploys to |
