@@ -1,3 +1,17 @@
+diff --git a/scripts/reinforcement_learning/rsl_rl/play.py b/scripts/reinforcement_learning/rsl_rl/play.py
+index 79ad71d..b917db3 100644
+--- a/scripts/reinforcement_learning/rsl_rl/play.py
++++ b/scripts/reinforcement_learning/rsl_rl/play.py
+@@ -188,6 +188,9 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
+         }
+         print("[INFO] Recording videos during training.")
+         print_dict(video_kwargs, nesting=4)
++        if env.metadata.get("render_fps") is None:
++            env.metadata["render_fps"] = int(round(1.0 / env.unwrapped.step_dt))
++        video_kwargs["fps"] = int(round(1.0 / env.unwrapped.step_dt))
+         env = gym.wrappers.RecordVideo(env, **video_kwargs)
+ 
+     # wrap around environment for rsl-rl
 diff --git a/source/robot_lab/robot_lab/tasks/__init__.py b/source/robot_lab/robot_lab/tasks/__init__.py
 index 9f1112f..64bbad9 100644
 --- a/source/robot_lab/robot_lab/tasks/__init__.py

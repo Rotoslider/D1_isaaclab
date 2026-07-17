@@ -51,6 +51,15 @@ def main(env_cfg, agent_cfg):
     if args_cli.device is not None:
         env_cfg.sim.device = args_cli.device
     env_cfg.observations.policy.enable_corruption = False
+    # turn off the velocity-command debug marker so it doesn't occlude the robot
+    if hasattr(env_cfg.commands.base_velocity, "debug_vis"):
+        env_cfg.commands.base_velocity.debug_vis = False
+    # side-low follow camera (relative to robot frame) so the leg motion is visible
+    env_cfg.viewer.origin_type = "asset_root"
+    env_cfg.viewer.asset_name = "robot"
+    env_cfg.viewer.env_index = 0
+    env_cfg.viewer.eye = (1.4, 1.4, 0.55)
+    env_cfg.viewer.lookat = (0.0, 0.0, 0.3)
 
     log_root = os.path.abspath(os.path.join("logs", "rsl_rl", agent_cfg.experiment_name))
     resume = (
@@ -70,23 +79,21 @@ def main(env_cfg, agent_cfg):
     policy = runner.get_inference_policy(device=env.unwrapped.device)
 
     robot = env.unwrapped.scene["robot"]
+    p0 = robot.data.root_pos_w.torch[0, :2].detach().cpu().numpy().copy()
     frames = []
     obs = env.get_observations()
     for _ in range(args_cli.steps):
         with torch.inference_mode():
             act = policy(obs)
             obs, _, _, _ = env.step(act)
-        # follow camera on env 0's robot for a close view of the gait
-        p = robot.data.root_pos_w.torch[0].detach().cpu().numpy()
-        env.unwrapped.sim.set_camera_view(
-            (float(p[0]) + 1.8, float(p[1]) + 1.8, float(p[2]) + 0.9),
-            (float(p[0]), float(p[1]), float(p[2])),
-        )
         fr = env.unwrapped.render()
         if fr is not None:
             fr = np.asarray(fr)
             if fr.ndim == 3 and fr.shape[2] >= 3:
                 frames.append(fr[:, :, :3].astype(np.uint8))
+    p1 = robot.data.root_pos_w.torch[0, :2].detach().cpu().numpy()
+    dist = float(((p1 - p0) ** 2).sum() ** 0.5)
+    print(f"[RENDER6] env0 traveled {dist:.2f} m in {args_cli.steps} steps ({dist / (args_cli.steps * 0.02):.2f} m/s avg)")
 
     if frames:
         imageio.mimwrite(args_cli.out, frames, fps=50, quality=8, macro_block_size=8)
