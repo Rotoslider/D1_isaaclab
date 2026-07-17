@@ -1,8 +1,26 @@
 diff --git a/scripts/reinforcement_learning/rsl_rl/play.py b/scripts/reinforcement_learning/rsl_rl/play.py
-index 79ad71d..b917db3 100644
+index 79ad71d..e839c2d 100644
 --- a/scripts/reinforcement_learning/rsl_rl/play.py
 +++ b/scripts/reinforcement_learning/rsl_rl/play.py
-@@ -188,6 +188,9 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
+@@ -132,6 +132,17 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
+ 
+     # disable randomization for play
+     env_cfg.observations.policy.enable_corruption = False
++    # FIXED forward command (live view)
++    _c = env_cfg.commands.base_velocity
++    _c.resampling_time_range = (1.0e9, 1.0e9)
++    for _a, _v in (("rel_standing_envs", 0.0), ("rel_heading_envs", 0.0), ("heading_command", False)):
++        if hasattr(_c, _a):
++            setattr(_c, _a, _v)
++    _c.ranges.lin_vel_x = (0.5, 0.5)
++    _c.ranges.lin_vel_y = (0.0, 0.0)
++    _c.ranges.ang_vel_z = (0.0, 0.0)
++    if hasattr(_c.ranges, "heading"):
++        _c.ranges.heading = (0.0, 0.0)
+     # remove random pushing
+     env_cfg.events.randomize_apply_external_force_torque = None
+     env_cfg.events.push_robot = None
+@@ -188,6 +199,9 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
          }
          print("[INFO] Recording videos during training.")
          print_dict(video_kwargs, nesting=4)
