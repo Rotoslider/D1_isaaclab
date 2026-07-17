@@ -51,15 +51,25 @@ def main(env_cfg, agent_cfg):
     if args_cli.device is not None:
         env_cfg.sim.device = args_cli.device
     env_cfg.observations.policy.enable_corruption = False
-    # turn off the velocity-command debug marker so it doesn't occlude the robot
-    if hasattr(env_cfg.commands.base_velocity, "debug_vis"):
-        env_cfg.commands.base_velocity.debug_vis = False
-    # side-low follow camera (relative to robot frame) so the leg motion is visible
+    # FIXED steady forward command (0.5 m/s) so the walk is clean to judge
+    cmd = env_cfg.commands.base_velocity
+    cmd.resampling_time_range = (1.0e9, 1.0e9)
+    for a, v in (("rel_standing_envs", 0.0), ("rel_heading_envs", 0.0), ("heading_command", False)):
+        if hasattr(cmd, a):
+            setattr(cmd, a, v)
+    cmd.ranges.lin_vel_x = (0.5, 0.5)
+    cmd.ranges.lin_vel_y = (0.0, 0.0)
+    cmd.ranges.ang_vel_z = (0.0, 0.0)
+    if hasattr(cmd.ranges, "heading"):
+        cmd.ranges.heading = (0.0, 0.0)
+    if hasattr(cmd, "debug_vis"):
+        cmd.debug_vis = False
+    # rear-quarter follow camera (behind + side + up) to see the back legs
     env_cfg.viewer.origin_type = "asset_root"
     env_cfg.viewer.asset_name = "robot"
     env_cfg.viewer.env_index = 0
-    env_cfg.viewer.eye = (1.4, 1.4, 0.55)
-    env_cfg.viewer.lookat = (0.0, 0.0, 0.3)
+    env_cfg.viewer.eye = (-1.7, 1.1, 0.65)
+    env_cfg.viewer.lookat = (0.4, 0.0, 0.2)
 
     log_root = os.path.abspath(os.path.join("logs", "rsl_rl", agent_cfg.experiment_name))
     resume = (
@@ -79,13 +89,19 @@ def main(env_cfg, agent_cfg):
     policy = runner.get_inference_policy(device=env.unwrapped.device)
 
     robot = env.unwrapped.scene["robot"]
+    jn = list(robot.data.joint_names)
     p0 = robot.data.root_pos_w.torch[0, :2].detach().cpu().numpy().copy()
+    jp_sum = None
+    nacc = 0
     frames = []
     obs = env.get_observations()
     for _ in range(args_cli.steps):
         with torch.inference_mode():
             act = policy(obs)
             obs, _, _, _ = env.step(act)
+        jp = robot.data.joint_pos.torch[0].detach().cpu().numpy()
+        jp_sum = jp.copy() if jp_sum is None else jp_sum + jp
+        nacc += 1
         fr = env.unwrapped.render()
         if fr is not None:
             fr = np.asarray(fr)
@@ -94,6 +110,10 @@ def main(env_cfg, agent_cfg):
     p1 = robot.data.root_pos_w.torch[0, :2].detach().cpu().numpy()
     dist = float(((p1 - p0) ** 2).sum() ** 0.5)
     print(f"[RENDER6] env0 traveled {dist:.2f} m in {args_cli.steps} steps ({dist / (args_cli.steps * 0.02):.2f} m/s avg)")
+    jpm = jp_sum / max(1, nacc)
+    for i, n in enumerate(jn):
+        if "thigh" in n or "calf" in n:
+            print(f"[JOINT] {n}: mean {jpm[i]:+.3f} rad  (default -0.75; near -0.75 = leg down/back, toward 0 = horizontal)")
 
     if frames:
         imageio.mimwrite(args_cli.out, frames, fps=50, quality=8, macro_block_size=8)
