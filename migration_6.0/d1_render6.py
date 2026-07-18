@@ -105,14 +105,24 @@ def main(env_cfg, agent_cfg):
         nacc += 1
         # drive the render camera to follow env0 explicitly (viewer cfg is
         # ignored on the headless rgb_array path)
+        # Follow env0 with the ACTUAL capture camera: Isaac Lab 3.0's rgb_array
+        # video path renders /OmniverseKit_Persp via its own Kit capture object
+        # (isaaclab_physx IsaacsimKitPerspectiveVideo) — env viewer cfg and
+        # sim.set_camera_view do NOT move it. Drive it directly per frame.
         rp = robot.data.root_pos_w.torch[0].detach().cpu().numpy()
         try:
-            env.unwrapped.sim.set_camera_view(
-                eye=(float(rp[0]) - 1.8, float(rp[1]) + 1.2, float(rp[2]) + 0.7),
-                target=(float(rp[0]) + 0.3, float(rp[1]), float(rp[2])),
+            from isaacsim.core.rendering_manager import ViewportManager
+
+            ViewportManager.set_camera_view(
+                "/OmniverseKit_Persp",
+                eye=[float(rp[0]) - 1.8, float(rp[1]) + 1.2, float(rp[2]) + 0.7],
+                target=[float(rp[0]) + 0.3, float(rp[1]), float(rp[2])],
             )
-        except Exception:
-            pass
+        except Exception as e:
+            if not frames:  # report once, on the first frame
+                print(f"[RENDER6] follow-cam FAILED: {type(e).__name__}: {e}")
+        if not frames:
+            print(f"[RENDER6] env0 root at {np.round(rp, 2).tolist()}")
         fr = env.unwrapped.render()
         if fr is not None:
             fr = np.asarray(fr)
