@@ -38,9 +38,10 @@ V="$RL/tasks/manager_based/locomotion/velocity"
 echo "== staging NavBot D1 into robot_lab6 =="
 
 # 1. robot data (URDF + meshes)
-mkdir -p "$RL/data/Robots/navbot/d1"
-cp -r "$URDF_SRC/urdf"   "$RL/data/Robots/navbot/d1/"
-cp -r "$URDF_SRC/meshes" "$RL/data/Robots/navbot/d1/"
+DATA="$HOME/robot_lab6/source/robot_lab/data"
+mkdir -p "$DATA/Robots/navbot/d1"
+cp -r "$URDF_SRC/urdf"   "$DATA/Robots/navbot/d1/"
+cp -r "$URDF_SRC/meshes" "$DATA/Robots/navbot/d1/"
 echo "  [ok] URDF + meshes -> data/Robots/navbot/d1/"
 
 # 2. articulation cfg
