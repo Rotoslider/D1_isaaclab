@@ -1,5 +1,10 @@
 # NavBot D1 — migration to Isaac Sim 6.0.1 / Isaac Lab 3.0
 
+> **2026-07-18: this port was rolled back off the box** (it under-performed the Isaac Gym baseline).
+> These notes are the preserved **lessons + platform fixes** for a clean restart — `navbot_d1` is no
+> longer installed in `robot_lab6`. See `../README.md` and `../../docs/05_PORTING_TO_ISAACSIM_FILEMAP.md`.
+
+
 **Why:** On the p3tiny box (RTX 4000 Ada + Intel iGPU, driver **595.71.05-open**), Isaac Sim
 **5.1**'s RTX renderer segfaulted on init (both GUI viewport and offscreen `--video`), so the D1
 could only be *trained*, never *seen*, in Isaac Sim. Isaac Sim **6.0.1** lists driver **595.58.03**
