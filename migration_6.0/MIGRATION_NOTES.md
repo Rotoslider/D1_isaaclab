@@ -47,6 +47,10 @@ dashboard) is untouched as a fallback.
 
 ## Status (platform)
 - ✅ D1 task registers, env builds, **trains** on Isaac Sim 6.0.1 / Isaac Lab 3.0 (4096 envs).
+- ✅ **2026-07-18: stock `unitree_go2` re-verified training on 6.0.1** (post-cleanup smoke test) and
+  kept enabled in `robot_lab6` as the working reference. It needed exactly fixes **#6** (height-scanner
+  prim path → `/Robot/Geometry/base`) and **#7** (`merge_fixed_joints=False` on the Go2 asset) applied
+  to the stock Go2 files — confirming those two are the ones the D1 re-port must carry.
 - RTX viewport confirmed working on 6.0.1 — the native "see it walk" is now possible (no pybullet
   workaround needed). Live viewer: `play.py … --load_run <ts> --viz kit` (first
   `export XAUTHORITY=/run/user/1000/gdm/Xauthority`; Isaac Lab 3.0 deprecated `--headless`).
