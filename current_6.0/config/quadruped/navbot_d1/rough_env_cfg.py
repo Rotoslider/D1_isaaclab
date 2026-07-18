@@ -3,6 +3,7 @@
 #   - terms with byte-identical formulas reuse robot_lab funcs at Frank's weights
 #   - the rest use frank_rewards.py (his exact legged_gym formulas)
 #   - commands, tracking sigma, and 5000-iter training all match his D1RoughCfg.
+from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.utils.configclass import configclass
@@ -48,13 +49,41 @@ class NavBotD1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.actions.joint_pos.clip = {".*": (-100.0, 100.0)}
         self.actions.joint_pos.joint_names = self.joint_names
 
-        # ------------------------------ Events (domain randomization) ------------------------------
+        # ============== Events = Frank D1RoughCfg domain_rand (legged_gym), ported ==============
+        # friction_range [0.2, 1.0]; randomize_restitution = False
+        self.events.randomize_rigid_body_material.params["static_friction_range"] = (0.2, 1.0)
+        self.events.randomize_rigid_body_material.params["dynamic_friction_range"] = (0.2, 1.0)
+        self.events.randomize_rigid_body_material.params["restitution_range"] = (0.0, 0.0)
+        # payload_mass_range [-1, 2] kg added to the base
         self.events.randomize_rigid_body_mass_base.params["asset_cfg"].body_names = [self.base_link_name]
-        self.events.randomize_rigid_body_mass_others.params["asset_cfg"].body_names = [
-            f"^(?!.*{self.base_link_name}).*"
-        ]
+        self.events.randomize_rigid_body_mass_base.params["mass_distribution_params"] = (-1.0, 2.0)
+        # randomize_link_mass = False in Frank's cfg -> drop robot_lab's link-mass scaling
+        self.events.randomize_rigid_body_mass_others = None
+        # com_displacement_range [-0.05, 0.05] on the base (= robot_lab default range)
         self.events.randomize_com_positions.params["asset_cfg"].body_names = [self.base_link_name]
+        # randomize_kp/kd [0.9, 1.1] — robot_lab's default (0.5, 2.0) is FAR wider than Frank's
+        self.events.randomize_actuator_gains.params["stiffness_distribution_params"] = (0.9, 1.1)
+        self.events.randomize_actuator_gains.params["damping_distribution_params"] = (0.9, 1.1)
+        # randomize_joint_armature = True, joint_armature_range [0.8, 1.2] (scale)
+        self.events.randomize_joint_armature = EventTerm(
+            func=mdp.randomize_joint_parameters,
+            mode="startup",
+            params={
+                "asset_cfg": SceneEntityCfg("robot", joint_names=[".*"]),
+                "armature_distribution_params": (0.8, 1.2),
+                "operation": "scale",
+                "distribution": "uniform",
+            },
+        )
+        # disturbance_range [-15, 15] N: in legged_gym this is a 1-sim-step kick every 8 policy
+        # steps (avg |F| < 0.5 N). Approximated as a small persistent per-episode wrench.
         self.events.randomize_apply_external_force_torque.params["asset_cfg"].body_names = [self.base_link_name]
+        self.events.randomize_apply_external_force_torque.params["force_range"] = (-2.0, 2.0)
+        self.events.randomize_apply_external_force_torque.params["torque_range"] = (-0.5, 0.5)
+        # push_robots: push_interval_s 16, max_push_vel_xy 1.0
+        self.events.randomize_push_robot.interval_range_s = (16.0, 16.0)
+        self.events.randomize_push_robot.params["velocity_range"] = {"x": (-1.0, 1.0), "y": (-1.0, 1.0)}
+        # NOT ported (no stock Isaac Lab hook): motor_strength [0.9, 1.1], action delay (HIM-specific)
 
         # ================= Rewards = Frank D1RoughCfg (legged_gym), ported =================
         R = self.rewards
