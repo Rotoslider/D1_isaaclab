@@ -40,9 +40,33 @@ dashboard) is untouched as a fallback.
    custom mdp (matching stock `core.velocity.mdp`). (see `patch_torch.py`)
 9. (verification tooling: `dump_d1_prims.py`, `test_import.py`)
 
-## Status
+## Status (platform)
 - ✅ D1 task registers, env builds, **trains** on Isaac Sim 6.0.1 / Isaac Lab 3.0 (4096 envs).
 - RTX viewport confirmed working on 6.0.1 — the native "see it walk" is now possible (no pybullet
-  workaround needed).
-- TODO: point the Isaac Lab dashboard at `~/robot_lab6/logs`; retrain fully; render in the native
-  viewport; revisit the dropped GPU-patch tuning only if a high-env-count run overflows.
+  workaround needed). Live viewer: `play.py … --load_run <ts> --viz kit` (first
+  `export XAUTHORITY=/run/user/1000/gdm/Xauthority`; Isaac Lab 3.0 deprecated `--headless`).
+
+## Post-migration work (gait / config), 2026-07-17
+After the platform came up, the gait was a **belly-crawl / frozen shuffle** and took several fixes:
+1. **Actuator stability:** added `armature=0.13108` + `enabled_self_collisions=True` to
+   `navbot_d1.py`, spawn z→0.53. Without joint armature the PD hold gave way and the robot flipped.
+   (This — not a joint-sign flip — was the real "won't stand" bug. Frank's exact pose hip ∓0.05,
+   thigh/calf −0.75 is correct; imported joint limits match the URDF.)
+2. **action_scale:** the registered Isaac Gym `d1` task = `D1RoughCfg` uses `action_scale 0.25`
+   + `hip_reduction 0.3` (effective hip 0.075 / thigh 0.25 / calf 0.25) — NOT the deploy
+   `config.yaml`'s [0.35,0.55,0.80]. Using the deploy values made the rear legs splay. Fixed.
+3. **Frank's rewards re-implemented:** `mdp/frank_rewards.py` = the 17 `D1RoughCfg` reward
+   *formulas* ported to the Isaac Lab data API (registered via `from .frank_rewards import *`).
+   Weights aligned to Frank's `D1RoughCfg`.
+4. **only_positive_rewards was the key:** legged_gym clips per-step reward ≥ 0; Isaac Lab has no
+   such flag, so the penalty-heavy set trained a *frozen* policy (freeze actions to dodge
+   penalties). Fixed with `only_positive_env.py::OnlyPositiveRewardEnv` (env entry_point in the
+   task `__init__.py`). Reward flipped −18→+0.15 and then climbed.
+
+## Honest status (gait)
+- ✅ Best run `logs/rsl_rl/navbot_d1_rough/2026-07-16_22-08-32` walks ~0.78–0.90 m/s on rough terrain.
+- ⚠️ **Not a faithful reproduction of Frank's deployed gait.** Frank's real gait is **AMP** (not
+  ported) on **HIM** (unavailable in robotlab6 rsl_rl → plain PPO). Reward weights/only-positive
+  clip need polish; PD gains + armature are **provisional** until the real 48:1 motors are measured.
+- TODO: point the Isaac Lab dashboard at `~/robot_lab6/logs`; reconcile Frank's domain-randomization
+  ranges; polish rewards; finalize actuator params on the physical robot; (optional) AMP pipeline.

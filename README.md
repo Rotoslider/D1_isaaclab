@@ -1,44 +1,49 @@
 # NavBot D1 — Isaac Lab / robot_lab port
 
-Ports the **D1 (48:1, high-torque)** quadruped from Isaac Gym / HIMLoco to **Isaac Lab / robot_lab**
-so it can train in the newer physics engine. Cloned from robot_lab's **Unitree Go2** template
-(identical joint naming: `FL/FR/RL/RR_{hip,thigh,calf}_joint`, base link `base`, foot `.*_foot`)
-with our D1's URDF + **48:1 actuator params**.
+Ports **Frank's custom open-source D1** (48:1, high-torque; ~1.03 m/s; Damiao DM-J6248P-2EC) from
+Isaac Gym / HIMLoco into the **`robot_lab` program** (`fan-ziqi/robot_lab`, an Isaac Lab extension).
+Added as a new robot `navbot_d1`, task `RobotLab-Isaac-Velocity-Rough-NavBot-D1-v0`.
 
-## Status (2026-07-16) — ✅ WORKING
-Trains end-to-end in Isaac Lab. The D1 spawns from URDF, the velocity task builds, and rsl_rl PPO
-runs (verified: 5-iter test-train, all reward terms active).
+> ⚠️ **Two naming traps** (full explanation in `../docs/05_PORTING_TO_ISAACSIM_FILEMAP.md`):
+> 1. This is **not** the built-in **Agibot D1** (`data/Robots/agibot/…`, ~3 m/s) — that's a
+>    different robot; never train it.
+> 2. Frank's `D1_rl_sar/.../policy/d1/**robot_lab**/` folder is an **Isaac Gym** deploy artifact
+>    (ONNX producer = PyTorch 1.10), **not** the `robot_lab` program. There is **no** Frank Isaac
+>    Lab config — we own this port.
 
-**Environment:** the `robotlab` env must be **Python 3.11 + Isaac Sim 5.1.0 + torch 2.7.0+cu128**
-+ Isaac Lab v2.3.2 + robot_lab v2.3.2. (Isaac Sim **4.5.0 does NOT work** — its URDF-importer
-extension won't load; 5.1 downloads it on-demand. This cost a while to discover.)
+## Current target: Isaac Sim 6.0.1 / Isaac Lab 3.0 (env `robotlab6`, py3.12)
+Earlier attempts: Isaac Sim 4.5.0 (URDF importer won't load — dead end); Isaac Sim 5.1 (worked, but
+its RTX renderer segfaults on this dual-GPU box). **6.0.1 is the working target** — RTX viewport
+renders, D1 trains. See `migration_6.0/MIGRATION_NOTES.md` for the 9 port fixes.
 
-## Files → deploy paths (into robot_lab v2.3.2, `source/robot_lab/robot_lab/`)
-| this repo | deploys to |
-|---|---|
-| `assets/navbot_d1.py` | `assets/navbot_d1.py` |
-| `config/quadruped/navbot_d1/**` | `tasks/manager_based/locomotion/velocity/config/quadruped/navbot_d1/**` |
+## Where the files are
+- **Authoritative, current copy = on the box:** `~/robot_lab6/source/robot_lab/robot_lab/…`
+  (assets/navbot_d1.py, the `navbot_d1/` task dir, `mdp/frank_rewards.py`, `only_positive_env.py`)
+  + robot data at `.../data/Robots/navbot/d1/{urdf,meshes}/`.
+- **Local backup of the current copy:** `current_6.0/` (synced from the box).
+- **Original 5.1-era snapshot:** `assets/`, `config/` (kept for history; superseded by `current_6.0/`).
+- **Migration toolkit:** `migration_6.0/` (notes, full `robot_lab6_port.diff`, install + diag scripts).
 
-Also: the D1 `urdf/` + `meshes/` → `source/robot_lab/data/Robots/navbot/d1/` (relative mesh paths).
-`deploy.sh` copies all of it to the box.
+Full file map (incl. the URDF/reference configs it ports *from*): `../docs/05_PORTING_TO_ISAACSIM_FILEMAP.md`.
 
-## Task
-`RobotLab-Isaac-Velocity-Rough-NavBot-D1-v0`
-
+## Run it
 ```bash
-cd ~/robot_lab
+conda activate robotlab6 && export OMNI_KIT_ACCEPT_EULA=YES && cd ~/robot_lab6
 python scripts/reinforcement_learning/rsl_rl/train.py \
   --task RobotLab-Isaac-Velocity-Rough-NavBot-D1-v0 --headless --num_envs 4096
+# watch a run (GUI on the box monitor):  add  --load_run <ts> --viz kit  and first
+#   export XAUTHORITY=/run/user/1000/gdm/Xauthority
 ```
-Auto-discovered by robot_lab's `import_packages()` — no parent-file edits needed.
 
-## ⚠️ Provisional actuator params — verify after the robot arrives
-The 48:1 values in `assets/navbot_d1.py` (kp 50/55/55, kd 3.2/3.5/3.5, effort 50 Nm, vel 6.28 rad/s,
-default pose hip ±0.05 / thigh −0.75 / calf −0.75) come from the deployed rl_sar `config.yaml` — a
-**starting point**. Re-check against the **measured** motor torque-speed curve once the physical D1
-arrives (measure via the Damiao actuator CAN feedback + a Fluke; a DC clamp meter is optional).
-Then widen the domain randomization so the trained policy tolerates the real range.
+## Status — trains + moves, NOT yet faithful
+The D1 spawns, trains (4096 envs), renders, and a best run
+(`logs/rsl_rl/navbot_d1_rough/2026-07-16_22-08-32`) walks ~0.78–0.90 m/s on rough terrain. But it is
+**not a faithful reproduction of Frank's deployed gait**:
+- Frank's real gait is **AMP** (Adversarial Motion Priors) — **not ported** (deferred, large).
+- Frank's stack uses **HIM**; robotlab6's rsl_rl has no HIM → we use **plain PPO**.
+- Reward formulas are Frank's `D1RoughCfg` re-implemented in `frank_rewards.py`; the only-positive
+  clip (`only_positive_env.py`) was the key to stop a frozen policy, but weights still need polish.
+- Actuator params (kp 50/55/55, kd 3.2/3.5, effort 50 Nm, **armature 0.13108**) are **provisional** —
+  reality-check against **measured** 48:1 motor curves once the physical robot arrives.
 
-## Notes
-- First test-train may need a tweak or two (joint-pose sign, a reward-term name) — normal for a port.
-- `flat_env_cfg` not yet added (rough only); trivial to add later (inherits rough, sets flat terrain).
+Treat the current policy as a working scaffold, not the finished D1 policy.
