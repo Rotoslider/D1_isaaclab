@@ -103,6 +103,16 @@ def main(env_cfg, agent_cfg):
         jp = robot.data.joint_pos.torch[0].detach().cpu().numpy()
         jp_sum = jp.copy() if jp_sum is None else jp_sum + jp
         nacc += 1
+        # drive the render camera to follow env0 explicitly (viewer cfg is
+        # ignored on the headless rgb_array path)
+        rp = robot.data.root_pos_w.torch[0].detach().cpu().numpy()
+        try:
+            env.unwrapped.sim.set_camera_view(
+                eye=(float(rp[0]) - 1.8, float(rp[1]) + 1.2, float(rp[2]) + 0.7),
+                target=(float(rp[0]) + 0.3, float(rp[1]), float(rp[2])),
+            )
+        except Exception:
+            pass
         fr = env.unwrapped.render()
         if fr is not None:
             fr = np.asarray(fr)
