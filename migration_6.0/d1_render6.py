@@ -16,6 +16,7 @@ parser.add_argument("--agent", type=str, default="rsl_rl_cfg_entry_point")
 parser.add_argument("--seed", type=int, default=None)
 parser.add_argument("--steps", type=int, default=300)
 parser.add_argument("--out", type=str, default=os.path.expanduser("~/d1_native_walk.mp4"))
+parser.add_argument("--vx", type=float, default=0.5, help="fixed forward command m/s")
 cli_args.add_rsl_rl_args(parser)
 AppLauncher.add_app_launcher_args(parser)
 args_cli, hydra_args = parser.parse_known_args()
@@ -57,7 +58,7 @@ def main(env_cfg, agent_cfg):
     for a, v in (("rel_standing_envs", 0.0), ("rel_heading_envs", 0.0), ("heading_command", False)):
         if hasattr(cmd, a):
             setattr(cmd, a, v)
-    cmd.ranges.lin_vel_x = (0.5, 0.5)
+    cmd.ranges.lin_vel_x = (args_cli.vx, args_cli.vx)
     cmd.ranges.lin_vel_y = (0.0, 0.0)
     cmd.ranges.ang_vel_z = (0.0, 0.0)
     if hasattr(cmd.ranges, "heading"):
