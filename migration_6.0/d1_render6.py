@@ -17,6 +17,11 @@ parser.add_argument("--seed", type=int, default=None)
 parser.add_argument("--steps", type=int, default=300)
 parser.add_argument("--out", type=str, default=os.path.expanduser("~/d1_native_walk.mp4"))
 parser.add_argument("--vx", type=float, default=0.5, help="fixed forward command m/s")
+parser.add_argument(
+    "--flat", action="store_true",
+    help="evaluate at minimum terrain difficulty (keeps the generator terrain so the height "
+    "scanner works — a true flat plane breaks the ray-caster)",
+)
 cli_args.add_rsl_rl_args(parser)
 AppLauncher.add_app_launcher_args(parser)
 args_cli, hydra_args = parser.parse_known_args()
@@ -52,6 +57,9 @@ def main(env_cfg, agent_cfg):
     if args_cli.device is not None:
         env_cfg.sim.device = args_cli.device
     env_cfg.observations.policy.enable_corruption = False
+    if args_cli.flat:
+        env_cfg.scene.terrain.terrain_generator.curriculum = False
+        env_cfg.scene.terrain.terrain_generator.difficulty_range = (0.0, 0.0)
     # FIXED steady forward command (0.5 m/s) so the walk is clean to judge
     cmd = env_cfg.commands.base_velocity
     cmd.resampling_time_range = (1.0e9, 1.0e9)
