@@ -14,6 +14,6 @@ conda activate robotlab6
 export OMNI_KIT_ACCEPT_EULA=YES
 cd $HOME/robot_lab6
 echo "Viewing run: $RUN ($NENVS robots) — close the Isaac Sim window to exit."
-python scripts/reinforcement_learning/rsl_rl/play.py \
+python scripts/reinforcement_learning/rsl_rl/d1_view.py \
   --task RobotLab-Isaac-Velocity-Rough-NavBot-D1-v0 \
   --num_envs $NENVS --load_run "$RUN" --viz kit
