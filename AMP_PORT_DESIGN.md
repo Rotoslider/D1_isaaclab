@@ -85,10 +85,19 @@ Full reference: agent report archived in this repo's history; key facts:
   rollout loop computes amp obs pairs, style blend on settled mask, disc
   minibatch update inside PPO epochs, normalizer update per iter, checkpoint
   save/load incl. disc + normalizer (`amp_normalizer_state_dict`).
-- **D. Validation** — 5-iter smoke on nuc1 → diag_rewards + short run → full
-  10k-iter run (nuc1, 4096 envs; ~20 GB VRAM, plenty free). Bar: matches or
-  beats the box `amp_scratch01` Gym baseline on the all-env flat eval protocol
-  (`gym_eval_speed.py` equivalent), gait quality by video.
+- **B done 2026-07-19** (commit e12980f): env surface smoke-passed — joint remap
+  = Frank pose in dataset order, slew ramp correct, settled fraction 0→1.0
+  (targets must be envelope-projected!), terminal capture on falls, dim 55==55.
+- **C done 2026-07-19** (commit a30ee63): AmpPPO + AmpOnPolicyRunner + cmdcond
+  agent cfg + train.py branch. 5-iter/512-env smoke: disc loss .73→.18, preds
+  → −.76/+.75, blend fraction .43→.86, eplen 58→344, reward −4.6→−2.1.
+- **D. Validation (IN PROGRESS)** — `amp_lab_scratch01`: 4096 envs × 2000 iters
+  on nuc1 (console log `~/projects/d1_robot/logs/train_amp_lab_scratch01.log`,
+  run dir `~/robot_lab6/logs/rsl_rl/navbot_d1_amp/`). Interim reward set = the
+  validated rough/frankdr set (NOT yet cmdcond's) — this run validates the AMP
+  mechanics at scale + gait direction. Then: reward alignment to
+  D1AMPCanonicalCmdCondCfg's table → full 10k run → compare vs box
+  `amp_scratch01` Gym baseline (all-env flat eval protocol + video).
 
 ## Gaps accepted (documented, same class as PPO port)
 
