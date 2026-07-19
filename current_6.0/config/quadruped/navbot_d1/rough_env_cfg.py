@@ -187,11 +187,17 @@ class NavBotD1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.terminations.illegal_contact.params["sensor_cfg"].body_names = [self.base_link_name]
 
         # ------------------------------ Curriculums ------------------------------
-        self.curriculum.command_levels_lin_vel = None
+        # Frank D1RoughCfg: commands.curriculum = True, max_curriculum = 1.6 (lin_vel_x only;
+        # yaw has no curriculum in legged_gym). robot_lab's command_levels_lin_vel starts the
+        # range at range*mult[0] and expands +-0.1 toward range*mult[1] whenever mean tracking
+        # reward > 80% of its weight — same 80% rule as legged_gym update_command_curriculum.
+        # x: starts +-1.0, caps +-1.6 (= Frank). y: starts +-0.625, caps +-1.0 (Frank holds +-1.0
+        # throughout; starting lower is the closest stock mapping since x/y share the multiplier).
+        self.curriculum.command_levels_lin_vel.params["range_multiplier"] = (0.625, 1.0)
         self.curriculum.command_levels_ang_vel = None
 
         # ------------------------------ Commands = Frank D1RoughCfg (symmetric) ------------------------------
-        self.commands.base_velocity.ranges.lin_vel_x = (-1.0, 1.0)
+        self.commands.base_velocity.ranges.lin_vel_x = (-1.6, 1.6)   # curriculum cap (Frank max_curriculum)
         self.commands.base_velocity.ranges.lin_vel_y = (-1.0, 1.0)
         self.commands.base_velocity.ranges.ang_vel_z = (-3.14, 3.14)
         self.commands.base_velocity.rel_standing_envs = 0.1   # Frank zero_command_prob = 0.1
