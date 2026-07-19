@@ -60,3 +60,13 @@ echo "INSTALL_ALL_DONE"
 #    uv pip install --python "$PY" -U torch==2.11.0 torchvision==0.26.0 --index-url https://download.pytorch.org/whl/cu128
 # 2. nuc1 has a user-site torch 2.10 in ~/.local that SHADOWS the env — block user-site:
 #    conda env config vars set PYTHONNOUSERSITE=1 -n robotlab6
+# 3. robot_lab setup.py depends on "pinocchio" — WRONG PyPI package (a nose-testing
+#    plugin!) whose module shadows the real pinocchio from "pin" and breaks Isaac Sim's
+#    isaacsim.robot_motion.pink extension ("module 'pinocchio' has no attribute 'Model'"
+#    red error at GUI startup). Fixed in our robot_lab6 setup.py (pinocchio -> pin); on
+#    an already-broken env repair with:
+#    pip uninstall -y pinocchio && pip install --force-reinstall --no-deps "pin==3.9.0"
+# 4. Isaac Sim Content-browser bookmarks are persisted by omni.client in
+#    ~/.nvidia-omniverse/config/omniverse.toml ([bookmarks] section, name = path) —
+#    NOT the /persistent/app/omniverse/bookmarks carb setting (UI ignores it).
+#    D1 bookmarks written there on both machines 2026-07-19.
