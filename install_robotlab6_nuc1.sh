@@ -54,3 +54,9 @@ $PY -c "import torch; print('torch', torch.__version__, 'cuda', torch.version.cu
 $PY -c "import isaaclab; print('isaaclab OK')" 2>&1 | tail -1
 $PY -c "import robot_lab; print('robot_lab OK')" 2>&1 | tail -1
 echo "INSTALL_ALL_DONE"
+
+# Post-install fixes discovered on first run (2026-07-19):
+# 1. isaaclab.sh --install downgrades torch to 2.10 — re-pin AFTER it:
+#    uv pip install --python "$PY" -U torch==2.11.0 torchvision==0.26.0 --index-url https://download.pytorch.org/whl/cu128
+# 2. nuc1 has a user-site torch 2.10 in ~/.local that SHADOWS the env — block user-site:
+#    conda env config vars set PYTHONNOUSERSITE=1 -n robotlab6
