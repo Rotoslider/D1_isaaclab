@@ -21,3 +21,8 @@ from .amp_discriminator import AMPDiscriminator
 from .amp_utils import Normalizer, RunningMeanStd
 from .motion_loader import AMPLoader
 from .replay_buffer import ReplayBuffer
+
+# Isaac-Lab-side integration (import AmpVelocityEnv / AmpOnPolicyRunner / AmpPPO
+# from their modules directly — amp_env pulls in isaaclab, amp_runner pulls in
+# rsl_rl; keeping them out of this namespace lets the vendored core stay
+# importable in a bare python env, e.g. for dataset tooling).
