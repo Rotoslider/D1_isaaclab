@@ -15,3 +15,15 @@ gym.register(
         "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:NavBotD1RoughPPORunnerCfg",
     },
 )
+
+# AMP task: plain ManagerBasedRLEnv subclass, NOT OnlyPositiveRewardEnv —
+# Frank's AMP configs run with only_positive_rewards=False (d1_config.py:496).
+gym.register(
+    id="RobotLab-Isaac-Velocity-AMP-NavBot-D1-v0",
+    entry_point="robot_lab.tasks.manager_based.locomotion.velocity.amp.amp_env:AmpVelocityEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.amp_flat_env_cfg:NavBotD1AmpFlatEnvCfg",
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:NavBotD1RoughPPORunnerCfg",
+    },
+)
