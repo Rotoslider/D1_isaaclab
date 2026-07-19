@@ -92,6 +92,7 @@ def main(env_cfg, agent_cfg):
     robot = env.unwrapped.scene["robot"]
     jn = list(robot.data.joint_names)
     p0 = robot.data.root_pos_w.torch[0, :2].detach().cpu().numpy().copy()
+    p0_all = robot.data.root_pos_w.torch[:, :2].detach().cpu().numpy().copy()
     jp_sum = None
     nacc = 0
     frames = []
@@ -131,6 +132,14 @@ def main(env_cfg, agent_cfg):
     p1 = robot.data.root_pos_w.torch[0, :2].detach().cpu().numpy()
     dist = float(((p1 - p0) ** 2).sum() ** 0.5)
     print(f"[RENDER6] env0 traveled {dist:.2f} m in {args_cli.steps} steps ({dist / (args_cli.steps * 0.02):.2f} m/s avg)")
+    # all-env speed stats — env0 alone is noisy (terrain-row assignment varies between builds)
+    p1_all = robot.data.root_pos_w.torch[:, :2].detach().cpu().numpy()
+    t_total = args_cli.steps * 0.02
+    speeds = np.sort(np.linalg.norm(p1_all - p0_all, axis=1) / t_total)
+    print(
+        f"[RENDER6] all {len(speeds)} envs speed m/s: mean {speeds.mean():.2f}  median {np.median(speeds):.2f}"
+        f"  min {speeds[0]:.2f}  max {speeds[-1]:.2f}  (cmd {args_cli.vx})"
+    )
     jpm = jp_sum / max(1, nacc)
     for i, n in enumerate(jn):
         if "thigh" in n or "calf" in n:
