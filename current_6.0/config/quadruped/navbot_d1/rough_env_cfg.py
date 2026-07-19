@@ -43,6 +43,11 @@ class NavBotD1RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.observations.policy.height_scan = None
         self.observations.policy.joint_pos.params["asset_cfg"].joint_names = self.joint_names
         self.observations.policy.joint_vel.params["asset_cfg"].joint_names = self.joint_names
+        # Frank's HIM policy consumes 45 obs x 6 stacked frames = the 270-dim interface of the
+        # deployed ONNX (rl_sar). Match it: 6-frame history on the whole policy group, flattened.
+        # (Also what lets the net estimate base velocity, which we removed from the obs like Frank.)
+        self.observations.policy.history_length = 6
+        self.observations.policy.flatten_history_dim = True
 
         # ------------------------------ Actions ------------------------------
         self.actions.joint_pos.scale = {".*_hip_joint": 0.075, ".*_thigh_joint": 0.25, ".*_calf_joint": 0.25}
