@@ -1,4 +1,11 @@
-# AMP → Isaac Lab port design (started 2026-07-19)
+# AMP → Isaac Lab port design (started 2026-07-19 — **GOAL MET 2026-07-20**)
+
+**FINAL RESULT:** Lab port `cmdcond01` vs Gym baseline `amp_scratch01`, identical
+all-16-env flat protocol — 0.47 vs 0.48 m/s @cmd0.5, 0.71 vs 0.74 @cmd0.8
+(within 2–4%, tighter spreads, identical recipe-inherent undershoot on both),
+cadence 2.24 Hz vs reference 2.25 Hz, user-approved gait. Lab trains 2× faster
+wall-clock (19.5 h nuc1 vs 38.7 h Ada). The Isaac Lab port is now the primary
+D1 training stack.
 
 Goal: reproduce Frank's canonical AMP task **`d1_amp_canonical_cmdcond`**
 (D1_HIMLoco commit a88b463, the task README §5 names as the real-robot gait)
