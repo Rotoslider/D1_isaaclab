@@ -1,0 +1,50 @@
+diff --git a/legged_gym/legged_gym/scripts/play.py b/legged_gym/legged_gym/scripts/play.py
+index 055c71a..7058bb4 100644
+--- a/legged_gym/legged_gym/scripts/play.py
++++ b/legged_gym/legged_gym/scripts/play.py
+@@ -32,6 +32,7 @@ from legged_gym import LEGGED_GYM_ROOT_DIR
+ import os
+ 
+ import isaacgym
++from isaacgym import gymapi
+ from legged_gym.envs import *
+ from legged_gym.utils import get_args, export_policy_as_jit, export_policy_to_onnx, task_registry, Logger
+ 
+@@ -86,6 +87,14 @@ def play(args, x_vel=1.0, y_vel=0.0, yaw_vel=0.0):
+     camera_direction = np.array(env_cfg.viewer.lookat) - np.array(env_cfg.viewer.pos)
+     img_idx = 0
+ 
++    # --- follow-camera: keep the viewer locked on a robot (keys: F=toggle, N=next robot) ---
++    follow_cam = FOLLOW_CAMERA
++    follow_idx = robot_index
++    if env.viewer is not None:
++        env.gym.subscribe_viewer_keyboard_event(env.viewer, gymapi.KEY_F, "toggle_follow")
++        env.gym.subscribe_viewer_keyboard_event(env.viewer, gymapi.KEY_N, "next_robot")
++        print("[viewer] follow-camera ON  (press F = toggle follow, N = next robot)")
++
+     for i in range(10*int(env.max_episode_length)):
+     
+         actions = policy(obs.detach())
+@@ -102,6 +111,15 @@ def play(args, x_vel=1.0, y_vel=0.0, yaw_vel=0.0):
+         if MOVE_CAMERA:
+             camera_position += camera_vel * env.dt
+             env.set_camera(camera_position, camera_position + camera_direction)
++        if env.viewer is not None:
++            for evt in env.gym.query_viewer_action_events(env.viewer):
++                if evt.action == "toggle_follow" and evt.value > 0:
++                    follow_cam = not follow_cam
++                elif evt.action == "next_robot" and evt.value > 0:
++                    follow_idx = (follow_idx + 1) % env.num_envs
++            if follow_cam:
++                base = env.root_states[follow_idx, 0:3].cpu().numpy()
++                env.set_camera(base + np.array([2.0, 2.0, 1.2]), base)
+         if i < stop_state_log:
+             logger.log_states(
+                 {
+@@ -133,5 +151,6 @@ if __name__ == '__main__':
+     EXPORT_POLICY = True
+     RECORD_FRAMES = False
+     MOVE_CAMERA = False
++    FOLLOW_CAMERA = True   # 3D viewer locks onto a robot (toggle with F, cycle with N)
+     args = get_args()
+     play(args, x_vel=1.0, y_vel=0.0, yaw_vel=0.0)

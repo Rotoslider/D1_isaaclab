@@ -101,6 +101,45 @@ def main(env_cfg, agent_cfg):
     print(f"[VIEW] commands: {'random (sane ranges)' if args_cli.random else f'fixed forward {args_cli.vx} m/s'}")
     print("[VIEW] close the Isaac Sim window to exit.")
 
+    # keyboard: F = toggle follow-cam (off -> free mouse orbit/pan), N = next robot.
+    # The asset_root follow mode re-anchors the camera every frame, which also
+    # swallows all mouse navigation — so "follow off" switches to world mode.
+    cam_state = {"follow": True, "env_index": 0}
+    cam_ctrl = getattr(env.unwrapped, "viewport_camera_controller", None)
+
+    def _on_keyboard(event, *_args):
+        import carb.input as ci
+
+        if cam_ctrl is None or event.type != ci.KeyboardEventType.KEY_PRESS:
+            return True
+        if event.input == ci.KeyboardInput.F:
+            cam_state["follow"] = not cam_state["follow"]
+            if cam_state["follow"]:
+                cam_ctrl.update_view_to_asset_root("robot")
+                print(f"[VIEW] follow-cam ON (robot {cam_state['env_index']})")
+            else:
+                cam_ctrl.update_view_to_world()
+                print("[VIEW] follow-cam OFF — mouse orbit/pan free")
+        elif event.input == ci.KeyboardInput.N:
+            cam_state["env_index"] = (cam_state["env_index"] + 1) % args_cli.num_envs
+            cam_ctrl.set_view_env_index(cam_state["env_index"])
+            print(f"[VIEW] viewing robot {cam_state['env_index']}")
+        return True
+
+    kb_sub = None
+    if not args_cli.test_steps:
+        try:
+            import carb.input
+            import omni.appwindow
+
+            app_window = omni.appwindow.get_default_app_window()
+            kb_sub = carb.input.acquire_input_interface().subscribe_to_keyboard_events(
+                app_window.get_keyboard(), _on_keyboard
+            )
+            print("[VIEW] keys: F = toggle follow-cam (off frees the mouse), N = next robot")
+        except Exception as e:  # viewer still works without keys
+            print(f"[VIEW] keyboard shortcuts unavailable: {e}")
+
     obs = env.get_observations()
     steps = 0
     while simulation_app.is_running():
@@ -111,6 +150,12 @@ def main(env_cfg, agent_cfg):
         if args_cli.test_steps and steps >= args_cli.test_steps:
             print(f"[VIEW] test mode: {steps} steps OK, exiting")
             break
+    if kb_sub is not None:
+        import carb.input
+
+        carb.input.acquire_input_interface().unsubscribe_to_keyboard_events(
+            omni.appwindow.get_default_app_window().get_keyboard(), kb_sub
+        )
     env.close()
 
 

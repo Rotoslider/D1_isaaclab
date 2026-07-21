@@ -5,7 +5,7 @@
 # Close the viewer window to exit. Default = fixed 0.6 m/s forward command.
 RUN="${1:-}"
 ENVS="${2:-16}"
-VX="${3:-0.6}"
+VX="${3:-0.8}"
 source "$HOME/miniconda3/etc/profile.d/conda.sh"
 conda activate robotlab6
 export OMNI_KIT_ACCEPT_EULA=yes
