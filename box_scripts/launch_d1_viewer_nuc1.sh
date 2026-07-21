@@ -10,7 +10,7 @@ source "$HOME/miniconda3/etc/profile.d/conda.sh"
 conda activate robotlab6
 export OMNI_KIT_ACCEPT_EULA=yes
 cd "$HOME/robot_lab6" || exit 1
-ARGS=(--task RobotLab-Isaac-Velocity-AMP-NavBot-D1-v0 --num_envs "$ENVS" --vx "$VX" --viz kit)
+ARGS=(--task RobotLab-Isaac-Velocity-AMP-Rough-NavBot-D1-v0 --num_envs "$ENVS" --vx "$VX" --viz kit)
 if [ -n "$RUN" ]; then
   ARGS+=(--load_run "$RUN")
 fi
