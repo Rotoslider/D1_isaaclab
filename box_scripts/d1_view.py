@@ -23,7 +23,8 @@ parser.add_argument("--random", action="store_true", help="varied commands (sane
 parser.add_argument("--test_steps", type=int, default=0, help="internal: step N times then exit (headless smoke)")
 parser.add_argument(
     "--disable_fabric", action="store_true", default=False,
-    help="write poses to USD each frame (slower) so the Kit animation/stage recorder can capture them",
+    help="BROKEN on Isaac Lab 3.0 (renderer reads Fabric; USD write-back absent -> robots render "
+    "frozen at spawn). Kept for older stacks only. For recording use screen capture or d1_render6.py.",
 )
 cli_args.add_rsl_rl_args(parser)
 AppLauncher.add_app_launcher_args(parser)
