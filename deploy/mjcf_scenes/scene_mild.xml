@@ -14,9 +14,9 @@
     <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.25 0.3 0.25" rgb2="0.15 0.2 0.15"
       markrgb="0.8 0.8 0.8" width="300" height="300"/>
     <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="24 24" reflectance="0.1"/>
-    <!-- 16x16 m gentle procedural roughness, max 15 cm high (Isaac-Lab-like random
+    <!-- 16x16 m gentle procedural roughness, max 8 cm high (Isaac-Lab-like random
          rough at low difficulty), flat 1.5 m pad at spawn -->
-    <hfield name="mild_terrain" file="terrain_mild.png" size="8 8 0.15 0.02"/>
+    <hfield name="mild_terrain" file="terrain_mild.png" size="20 20 0.35 0.02"/>
   </asset>
 
   <worldbody>
