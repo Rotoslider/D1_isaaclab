@@ -21,6 +21,10 @@ parser.add_argument("--seed", type=int, default=None)
 parser.add_argument("--vx", type=float, default=0.6, help="fixed forward command m/s (ignored with --random)")
 parser.add_argument("--random", action="store_true", help="varied commands (sane ranges) instead of fixed forward")
 parser.add_argument("--test_steps", type=int, default=0, help="internal: step N times then exit (headless smoke)")
+parser.add_argument(
+    "--disable_fabric", action="store_true", default=False,
+    help="write poses to USD each frame (slower) so the Kit animation/stage recorder can capture them",
+)
 cli_args.add_rsl_rl_args(parser)
 AppLauncher.add_app_launcher_args(parser)
 args_cli, hydra_args = parser.parse_known_args()
@@ -74,6 +78,10 @@ def main(env_cfg, agent_cfg):
             cmd.ranges.heading = (0.0, 0.0)
 
     # follow env0 with the interactive viewport camera (user can still orbit)
+    if args_cli.disable_fabric:
+        env_cfg.sim.use_fabric = False
+        print("[VIEW] fabric DISABLED — poses written to USD (recordable, slower)")
+
     env_cfg.viewer.origin_type = "asset_root"
     env_cfg.viewer.asset_name = "robot"
     env_cfg.viewer.env_index = 0

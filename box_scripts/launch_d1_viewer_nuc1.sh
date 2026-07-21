@@ -14,4 +14,6 @@ ARGS=(--task RobotLab-Isaac-Velocity-AMP-Rough-NavBot-D1-v0 --num_envs "$ENVS" -
 if [ -n "$RUN" ]; then
   ARGS+=(--load_run "$RUN")
 fi
+# extra args pass straight through, e.g.: launch_d1_viewer_nuc1.sh "" 8 0.8 --disable_fabric
+ARGS+=("${@:4}")
 exec python scripts/reinforcement_learning/rsl_rl/d1_view.py "${ARGS[@]}"
