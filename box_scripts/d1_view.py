@@ -89,10 +89,12 @@ def main(env_cfg, agent_cfg):
         if args_cli.checkpoint
         else get_checkpoint_path(log_root, agent_cfg.load_run, agent_cfg.load_checkpoint)
     )
-    if agent_cfg.class_name == "OnPolicyRunner":
-        runner = OnPolicyRunner(env, agent_cfg.to_dict(), log_dir=None, device=agent_cfg.device)
-    else:
+    if agent_cfg.class_name == "DistillationRunner":
         runner = DistillationRunner(env, agent_cfg.to_dict(), log_dir=None, device=agent_cfg.device)
+    else:
+        # OnPolicyRunner handles inference for PPO AND AmpPPO checkpoints (the
+        # AmpOnPolicyRunner class only differs in training; extra disc keys ignored)
+        runner = OnPolicyRunner(env, agent_cfg.to_dict(), log_dir=None, device=agent_cfg.device)
     runner.load(resume)
     policy = runner.get_inference_policy(device=env.unwrapped.device)
     print(f"[VIEW] policy: {resume}")
