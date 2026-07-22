@@ -9,6 +9,23 @@ from robot_lab.assets import ISAACLAB_ASSETS_DATA_DIR
 
 _D1_AMP_DATASET = f"{ISAACLAB_ASSETS_DATA_DIR}/Motions/d1/d1_amp_v4_h_uniform_cmdcond.npz"
 
+# shared base (module-level: @configclass consumes class attributes, so the
+# subclass cannot read the parent's amp_cfg after decoration)
+_BASE_AMP_CFG = {
+    "motion_files": [_D1_AMP_DATASET],
+    "observation_mode": "with_feet_vel",
+    "command_dim": 3,
+    "reward_coef": 0.08,             # amp_reward_coef
+    "task_reward_lerp": 0.75,        # r = 0.25*style + 0.75*task
+    "grad_penalty_coef": 1.0,        # amp_grad_penalty_coef (canonical, not the 10.0 base)
+    "discr_hidden_dims": [1024, 512],
+    "replay_buffer_size": 1_000_000,
+    "num_preload_transitions": 2_000_000,
+    "command_stage_envelopes": [
+        {"start_iteration": 0, "vx_min": -0.60, "vx_max": 0.90, "vy_abs_max": 0.40, "wz_abs_max": 0.50}
+    ],
+}
+
 
 @configclass
 class NavBotD1AmpPPORunnerCfg(RslRlOnPolicyRunnerCfg):
@@ -40,17 +57,18 @@ class NavBotD1AmpPPORunnerCfg(RslRlOnPolicyRunnerCfg):
         desired_kl=0.01,
         max_grad_norm=0.5,           # cmdcond.algorithm
     )
+    amp_cfg = dict(_BASE_AMP_CFG)
+
+
+@configclass
+class NavBotD1AmpRoughPPORunnerCfg(NavBotD1AmpPPORunnerCfg):
+    """Rough-terrain AMP stage: adds Frank's terrain-scheduled style/task blend
+    (d1_amp_canonical mechanism, adapted: his 0.6->0.8 over levels 2->3; our base
+    lerp is 0.75 so we fade 0.75->0.90 over levels 2->4). Fixes the level-3.4
+    curriculum plateau — flat reference clips punish climbing gaits, so style
+    pressure must fade as terrain hardens."""
+
     amp_cfg = {
-        "motion_files": [_D1_AMP_DATASET],
-        "observation_mode": "with_feet_vel",
-        "command_dim": 3,
-        "reward_coef": 0.08,             # amp_reward_coef
-        "task_reward_lerp": 0.75,        # r = 0.25*style + 0.75*task
-        "grad_penalty_coef": 1.0,        # amp_grad_penalty_coef (canonical, not the 10.0 base)
-        "discr_hidden_dims": [1024, 512],
-        "replay_buffer_size": 1_000_000,
-        "num_preload_transitions": 2_000_000,
-        "command_stage_envelopes": [
-            {"start_iteration": 0, "vx_min": -0.60, "vx_max": 0.90, "vy_abs_max": 0.40, "wz_abs_max": 0.50}
-        ],
+        **_BASE_AMP_CFG,
+        "task_reward_lerp_schedule": {"level_lo": 2.0, "level_hi": 4.0, "lerp_lo": 0.75, "lerp_hi": 0.90},
     }

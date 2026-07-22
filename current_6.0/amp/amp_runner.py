@@ -30,6 +30,17 @@ class AmpOnPolicyRunner(OnPolicyRunner):
 
         self._amp_env = uenv
         self.amp_task_reward_lerp = float(amp.get("task_reward_lerp", 0.75))
+        # Frank's terrain-scheduled blend (d1_amp_canonical): style pressure fades
+        # as terrain hardens — the flat reference clips punish climbing gaits, so a
+        # fixed blend caps the terrain curriculum. Opt-in via amp_cfg; absent = the
+        # fixed-lerp behavior all prior runs used.
+        self._lerp_schedule = amp.get("task_reward_lerp_schedule")
+        if self._lerp_schedule:
+            s = self._lerp_schedule
+            print(
+                f"[AMP] terrain-scheduled lerp ON: {s['lerp_lo']:.2f}->{s['lerp_hi']:.2f} "
+                f"over terrain levels {s['level_lo']:.1f}->{s['level_hi']:.1f}"
+            )
         self.amp_data = AMPLoader(
             device=self.device,
             time_between_frames=float(uenv.step_dt),
@@ -125,12 +136,20 @@ class AmpOnPolicyRunner(OnPolicyRunner):
                     # (hybrid_runner.py:490-514: effective = settled & next_settled & ~dones)
                     blend_mask = prev_settled & now_settled & ~dones.bool().squeeze(-1)
                     if blend_mask.any():
+                        lerp_arg = None  # None -> discriminator's fixed task_reward_lerp
+                        if self._lerp_schedule:
+                            s = self._lerp_schedule
+                            tl = self._amp_env.scene.terrain.terrain_levels
+                            tl = (tl.torch if hasattr(tl, "torch") else tl).float()
+                            frac = ((tl - s["level_lo"]) / max(s["level_hi"] - s["level_lo"], 1e-6)).clamp(0.0, 1.0)
+                            lerp_arg = (s["lerp_lo"] + (s["lerp_hi"] - s["lerp_lo"]) * frac)[blend_mask]
                         blended, _ = self.discriminator.predict_amp_reward(
                             amp_obs[blend_mask],
                             next_amp_obs_term[blend_mask],
                             rewards[blend_mask],
                             normalizer=self.amp_normalizer,
                             command=policy_cmds[blend_mask],
+                            task_reward_lerp=lerp_arg,
                         )
                         rewards = rewards.clone()
                         rewards[blend_mask] = blended

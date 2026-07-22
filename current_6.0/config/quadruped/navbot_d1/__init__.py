@@ -36,6 +36,6 @@ gym.register(
     disable_env_checker=True,
     kwargs={
         "env_cfg_entry_point": f"{__name__}.amp_rough_env_cfg:NavBotD1AmpRoughEnvCfg",
-        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_amp_cfg:NavBotD1AmpPPORunnerCfg",
+        "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_amp_cfg:NavBotD1AmpRoughPPORunnerCfg",
     },
 )
